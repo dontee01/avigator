@@ -1,5 +1,6 @@
 package com.avigator.avigator.activity;
 
+        import android.app.ProgressDialog;
         import android.content.DialogInterface;
         import android.content.Intent;
         import android.location.Address;
@@ -83,7 +84,7 @@ public class MapsActivity extends AppCompatActivity
             Arrays.asList(DOT, GAP, DASH, GAP);
     List<String> init = new ArrayList<>();
 
-    private String address, city, state, country, postalCode, knownName;
+    private String address, city, state, country, postalCode, knownName, display, latitude, longitude;
     private Double lat, lng;
     private Geocoder geocoder;
     private List<Address> addresses =  new ArrayList<>();
@@ -318,18 +319,16 @@ public class MapsActivity extends AppCompatActivity
         LatLng markerPosition = marker.getPosition();
         Double lat = markerPosition.latitude;
         Double lng = markerPosition.longitude;
+        latitude = String.valueOf(lat);
+        longitude = String.valueOf(lng);
 //        Toast.makeText(this, "Testing : "+lat+":"+lng, Toast.LENGTH_LONG).show();
 
-        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+//        getWindow().setTitle(getResources().getText(R.string.main_title));
+        new GetInfo().execute();
+
+        AlertDialog alertDialog = new AlertDialog.Builder(MapsActivity.this).create();
         alertDialog.setTitle("");
-        alertDialog.setMessage("Obudu Mountain Resort (formerly known as the Obudu Cattle Ranch) is a ranch\n" +
-                "        and resort on the Obudu Plateau in Cross River State, Nigeria. It was developed in 1951 by Mr. McCaughley,\n" +
-                "        a Scot who first explored the mountain ranges in 1949. He camped on the mountaintop of the Oshie Ridge on\n" +
-                "        the Sankwala Mountains for a month before returning with Mr. Hugh Jones a fellow rancher who, in 1951,\n" +
-                "        together with Dr Crawfeild developed the Obudu Cattle Ranch. Although the ranch has been through troubles\n" +
-                "        since, it has very recently been rehabilitated to its former glory. A recently added cable car from the\n" +
-                "        base to the top of the plateau gives visitors a scenic view while bypassing the extremely winding road to\n" +
-                "        the top");
+        alertDialog.setMessage(display);
         // Alert dialog button
         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                 new DialogInterface.OnClickListener() {
@@ -340,6 +339,7 @@ public class MapsActivity extends AppCompatActivity
                     }
                 });
         alertDialog.show();
+//        getInbox(String.valueOf(lat), String.valueOf(lng));
 
 //        Intent intent = new Intent(getApplicationContext(), DetailsActivity.class);
 //        intent.putExtra("EXTRA_INFO", R.string.info_obudu);
@@ -347,6 +347,69 @@ public class MapsActivity extends AppCompatActivity
 //        startActivity(intent);
 
         return false;
+    }
+
+    private void getInbox(String lat, String lng) {
+
+        ApiInterface apiService =
+                ApiClient.getClient().create(ApiInterface.class);
+
+        Call<Message> call = apiService.getInbox(lat, lng);
+        call.enqueue(new Callback<Message>() {
+            @Override
+            public void onResponse(Call<Message> call, Response<Message> response) {
+                // clear the inbox
+                Message message = new Message();
+                message = response.body();
+                String extract = message.getExtract();
+                display = extract;
+                Log.d("API-REQ", display);
+
+                if(extract.equalsIgnoreCase("") || extract.equalsIgnoreCase(null)){
+                    display = message.getTitle();
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<Message> call, Throwable t) {
+                Log.d("API", t.getMessage());
+                Toast.makeText(getApplicationContext(), "Unable to fetch json: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private class GetInfo extends AsyncTask<Void, Void, Void>{
+        ProgressDialog asyncDialog = new ProgressDialog(MapsActivity.this);
+        String typeStatus;
+
+
+        @Override
+        protected void onPreExecute() {
+            //set message of the dialog
+            asyncDialog.setMessage("Loading...");
+            //show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Void doInBackground(Void... arg0) {
+
+            //don't touch dialog here it'll break the application
+            //do some lengthy stuff like calling login webservice
+            getInbox(latitude, longitude);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            //hide the dialog
+            asyncDialog.dismiss();
+
+            super.onPostExecute(result);
+        }
+
     }
 
 }

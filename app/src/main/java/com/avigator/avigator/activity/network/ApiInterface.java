@@ -6,6 +6,7 @@ import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Query;
 
 import static android.app.SearchManager.QUERY;
 
@@ -16,6 +17,6 @@ import static android.app.SearchManager.QUERY;
 public interface ApiInterface {
 
     @GET("aviator.php")
-    Call<List<Message>> getInbox();
+    Call<Message> getInbox(@Query("lat") String lat, @Query("lng") String lng);
 
 }
